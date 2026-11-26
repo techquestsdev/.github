@@ -1,0 +1,193 @@
+name: Go CI
+
+on:
+  workflow_call:
+    inputs:
+      go-version-file:
+        description: "Path to go.mod or .go-version used to select the Go toolchain"
+        required: false
+        type: string
+        default: "go.mod"
+      build-tags:
+        description: "Optional comma-separated Go build tags (for example 'nodbus')"
+        required: false
+        type: string
+        default: ""
+      build-packages:
+        description: "Go package pattern to compile in the build job"
+        required: false
+        type: string
+        default: "./..."
+      golangci-args:
+        description: "Arguments passed to golangci-lint"
+        required: false
+        type: string
+        default: "--timeout=5m"
+      generate-check-paths:
+        description: "Optional space-separated paths that must stay clean after running 'go generate ./...'"
+        required: false
+        type: string
+        default: ""
+      trivy-severity:
+        description: "Comma-separated Trivy severities to scan for"
+        required: false
+        type: string
+        default: "CRITICAL,HIGH"
+      trivy-exit-code:
+        description: "Exit code returned by Trivy when vulnerabilities are found ('1' fails CI, '0' reports only)"
+        required: false
+        type: string
+        default: "1"
+      os-matrix:
+        description: "JSON array of GitHub-hosted runner OS labels for test and build jobs"
+        required: false
+        type: string
+        default: '["ubuntu-latest","macos-latest","windows-latest"]'
+    secrets:
+      CODECOV_TOKEN:
+        description: "Optional Codecov upload token"
+        required: false
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  test:
+    name: Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ${{ fromJson(inputs.os-matrix) }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: ${{ inputs.go-version-file }}
+
+      - name: Download and verify dependencies
+        run: |
+          go mod download
+          go mod verify
+
+      - name: Run tests
+        shell: bash
+        env:
+          BUILD_TAGS: ${{ inputs.build-tags }}
+        run: |
+          set -euo pipefail
+          if [ -n "$BUILD_TAGS" ]; then
+            go test -v -race "-tags=${BUILD_TAGS}" -coverprofile=coverage.txt -covermode=atomic ./...
+          else
+            go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
+          fi
+
+      - name: Upload coverage to Codecov
+        if: matrix.os == 'ubuntu-latest'
+        uses: codecov/codecov-action@v7
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage.txt
+          fail_ci_if_error: false
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: ${{ inputs.go-version-file }}
+
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: latest
+          args: ${{ inputs.golangci-args }}
+
+  generate:
+    name: Generated Files Check
+    if: inputs.generate-check-paths != ''
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: ${{ inputs.go-version-file }}
+
+      - name: Verify generated files are up to date
+        env:
+          CHECK_PATHS: ${{ inputs.generate-check-paths }}
+        run: |
+          set -euo pipefail
+          go generate ./...
+          # shellcheck disable=SC2086
+          if ! git diff --exit-code -- $CHECK_PATHS || [ -n "$(git status --porcelain -- $CHECK_PATHS)" ]; then
+            echo "::error::Generated files are out of date. Run 'go generate ./...' and commit the result."
+            exit 1
+          fi
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: "fs"
+          scan-ref: "."
+          format: "sarif"
+          output: "trivy-results.sarif"
+          severity: ${{ inputs.trivy-severity }}
+          exit-code: ${{ inputs.trivy-exit-code }}
+
+      - name: Upload Trivy results to GitHub Security tab
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: "trivy-results.sarif"
+
+  build:
+    name: Build (${{ matrix.os }})
+    needs: [test, lint, security]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ${{ fromJson(inputs.os-matrix) }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: ${{ inputs.go-version-file }}
+
+      - name: Build packages
+        shell: bash
+        env:
+          BUILD_TAGS: ${{ inputs.build-tags }}
+          BUILD_PACKAGES: ${{ inputs.build-packages }}
+        run: |
+          set -euo pipefail
+          if [ -n "$BUILD_TAGS" ]; then
+            # shellcheck disable=SC2086
+            go build -v "-tags=${BUILD_TAGS}" $BUILD_PACKAGES
+          else
+            # shellcheck disable=SC2086
+            go build -v $BUILD_PACKAGES
+          fi

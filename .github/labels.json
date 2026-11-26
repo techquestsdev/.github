@@ -1,0 +1,82 @@
+[
+  {
+    "name": "bug",
+    "color": "d73a4a",
+    "description": "Something is not working as expected"
+  },
+  {
+    "name": "enhancement",
+    "color": "a2eeef",
+    "description": "New feature or improvement request"
+  },
+  {
+    "name": "documentation",
+    "color": "0075ca",
+    "description": "Improvements or additions to documentation"
+  },
+  {
+    "name": "duplicate",
+    "color": "cfd3d7",
+    "description": "This issue or pull request already exists"
+  },
+  {
+    "name": "good first issue",
+    "color": "7057ff",
+    "description": "Good starting point for newcomers"
+  },
+  {
+    "name": "help wanted",
+    "color": "008672",
+    "description": "Extra attention or community help is welcome"
+  },
+  {
+    "name": "invalid",
+    "color": "e4e669",
+    "description": "Does not appear valid or actionable"
+  },
+  {
+    "name": "question",
+    "color": "d876e3",
+    "description": "Further information or clarification requested"
+  },
+  {
+    "name": "wontfix",
+    "color": "ffffff",
+    "description": "This will not be worked on"
+  },
+  {
+    "name": "needs-triage",
+    "color": "fbca04",
+    "description": "Awaiting maintainer review and categorization"
+  },
+  {
+    "name": "dependencies",
+    "color": "0366d6",
+    "description": "Dependency version updates"
+  },
+  {
+    "name": "security",
+    "color": "b60205",
+    "description": "Security vulnerability, hardening, or advisory"
+  },
+  {
+    "name": "ci",
+    "color": "1d76db",
+    "description": "Continuous integration, release, or workflow changes"
+  },
+  {
+    "name": "github-actions",
+    "color": "2088ff",
+    "description": "GitHub Actions workflow updates"
+  },
+  {
+    "name": "go",
+    "color": "00add8",
+    "description": "Go code or toolchain"
+  },
+  {
+    "name": "rust",
+    "color": "dea584",
+    "description": "Rust code or toolchain"
+  }
+]

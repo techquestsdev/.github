@@ -1,0 +1,31 @@
+title: "[Idea]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Share an idea, workflow improvement, or experiment proposal before opening a formal feature request or PR.
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Idea Summary
+      description: What would you like to build, add, or change?
+      placeholder: Briefly describe the idea...
+    validations:
+      required: true
+
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Problem or Motivation
+      description: Why is this useful, and what pain point does it solve?
+      placeholder: Explain the use case...
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Design Notes or Alternatives
+      description: Optional sketches, CLI/UI examples, or trade-offs to consider.

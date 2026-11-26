@@ -32,10 +32,10 @@ Related to #(issue number)
 ## Testing
 <!-- Describe the tests you ran to verify your changes -->
 
-- [ ] Existing tests pass (`make test`)
+- [ ] Existing tests pass
 - [ ] New tests added (if applicable)
 - [ ] Manual testing performed
-- [ ] Linter passes (`make lint`)
+- [ ] Linter and formatter checks pass
 
 ### Test Coverage
 <!-- Provide test coverage information if applicable -->

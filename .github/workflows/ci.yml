@@ -1,0 +1,63 @@
+name: Validate Shared Config
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: validate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate templates, labels, and workflows
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Validate labels.json schema
+        run: |
+          set -euo pipefail
+          jq -e '
+            type == "array" and length > 0 and
+            all(.[];
+              (.name | type == "string" and length > 0) and
+              (.color | type == "string" and test("^[0-9a-fA-F]{6}$")) and
+              (.description | type == "string" and length <= 100)
+            )
+          ' .github/labels.json > /dev/null
+
+      - name: Validate YAML files and discussion form keys
+        run: |
+          set -euo pipefail
+          ruby -ryaml -e '
+            files = Dir.glob(["*.yml", "ISSUE_TEMPLATE/*.yml", ".github/DISCUSSION_TEMPLATE/*.yml", ".github/workflows/*.yml"])
+            raise "No YAML files matched" if files.empty?
+            files.each do |f|
+              data = YAML.load_file(f)
+              raise "#{f} parsed to nil" if data.nil?
+            end
+            Dir.glob(".github/DISCUSSION_TEMPLATE/*.yml").each do |f|
+              data = YAML.load_file(f)
+              extra = data.keys - ["title", "labels", "body"]
+              raise "#{f} contains unsupported top-level keys: #{extra.join(", ")}" unless extra.empty?
+            end
+            puts "Validated #{files.length} YAML files"
+          '
+
+      - name: Set up Go for actionlint
+        uses: actions/setup-go@v7
+        with:
+          go-version: "stable"
+
+      - name: Install and run actionlint
+        run: |
+          set -euo pipefail
+          go install github.com/rhysd/actionlint/cmd/actionlint@latest
+          actionlint -color

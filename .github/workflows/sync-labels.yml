@@ -1,0 +1,84 @@
+name: Sync Labels
+
+on:
+  workflow_call:
+    inputs:
+      prune:
+        description: "Delete repository labels that are not in the canonical labels.json list"
+        required: false
+        type: boolean
+        default: false
+    secrets:
+      LABELS_TOKEN:
+        description: "Optional PAT with repo/issues write access (defaults to github.token)"
+        required: false
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Repository slug (techquestsdev/repo) or 'all' to sync every non-archived org repo"
+        required: false
+        type: string
+        default: "techquestsdev/.github"
+      prune:
+        description: "Delete repository labels that are not in the canonical labels.json list"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  sync:
+    name: Sync canonical labels
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout canonical label definitions
+        uses: actions/checkout@v7
+        with:
+          repository: techquestsdev/.github
+          path: org-github
+
+      - name: Upsert labels
+        env:
+          GH_TOKEN: ${{ secrets.LABELS_TOKEN || github.token }}
+          EVENT_NAME: ${{ github.event_name }}
+          CALLER_REPO: ${{ github.repository }}
+          DISPATCH_TARGET: ${{ inputs.target }}
+          PRUNE: ${{ inputs.prune }}
+        run: |
+          set -euo pipefail
+
+          labels_file="org-github/.github/labels.json"
+          jq empty "$labels_file"
+
+          if [ "$EVENT_NAME" = "workflow_dispatch" ] && [ -n "$DISPATCH_TARGET" ]; then
+            if [ "$DISPATCH_TARGET" = "all" ]; then
+              mapfile -t repos < <(gh repo list techquestsdev --limit 200 --no-archived --json nameWithOwner --jq '.[].nameWithOwner')
+            else
+              repos=("$DISPATCH_TARGET")
+            fi
+          else
+            repos=("$CALLER_REPO")
+          fi
+
+          for repo in "${repos[@]}"; do
+            echo "Syncing labels for ${repo}..."
+            jq -c '.[]' "$labels_file" | while IFS= read -r item; do
+              name=$(jq -r '.name' <<<"$item")
+              color=$(jq -r '.color' <<<"$item")
+              desc=$(jq -r '.description' <<<"$item")
+              gh label create "$name" --repo "$repo" --color "$color" --description "$desc" --force
+            done
+
+            if [ "$PRUNE" = "true" ]; then
+              canonical=$(jq -r '.[].name' "$labels_file")
+              gh label list --repo "$repo" --limit 200 --json name --jq '.[].name' | while IFS= read -r existing; do
+                if ! grep -Fxq "$existing" <<<"$canonical"; then
+                  echo "Pruning extra label '${existing}' from ${repo}"
+                  gh label delete "$existing" --repo "$repo" --yes
+                fi
+              done
+            fi
+          done

@@ -25,10 +25,9 @@ body:
       label: Steps to Reproduce
       description: Steps to reproduce the behavior
       placeholder: |
-        1. Go to '...'
-        2. Click on '....'
-        3. Enter cron expression '...'
-        4. See error
+        1. Run or open '...'
+        2. Perform '...'
+        3. See error
     validations:
       required: true
 
@@ -54,7 +53,7 @@ body:
     id: version
     attributes:
       label: Version
-      description: What version of crontab-guru are you running?
+      description: What version of the project are you running?
       placeholder: v1.0.0 or commit hash
     validations:
       required: true
