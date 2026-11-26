@@ -152,13 +152,26 @@ jobs:
           format: "sarif"
           output: "trivy-results.sarif"
           severity: ${{ inputs.trivy-severity }}
-          exit-code: ${{ inputs.trivy-exit-code }}
+          exit-code: "0"
 
       - name: Upload Trivy results to GitHub Security tab
         if: always()
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: "trivy-results.sarif"
+
+      - name: Check Trivy findings
+        if: inputs.trivy-exit-code != '0'
+        env:
+          TRIVY_EXIT_CODE: ${{ inputs.trivy-exit-code }}
+        run: |
+          set -euo pipefail
+          count=$(jq '[.runs[].results[]?] | length' trivy-results.sarif)
+          if [ "$count" -gt 0 ]; then
+            jq -r '.runs[].results[]? | "::error title=\(.ruleId)::\(.message.text | gsub("\n"; " | "))"' trivy-results.sarif
+            echo "Found ${count} vulnerability finding(s)"
+            exit "$TRIVY_EXIT_CODE"
+          fi
 
   build:
     name: Build (${{ matrix.os }})
