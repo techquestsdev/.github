@@ -1,0 +1,34 @@
+name: Dependency Review
+
+on:
+  workflow_call:
+    inputs:
+      fail-on-severity:
+        description: "Minimum vulnerability severity that fails the check (low, moderate, high, critical)"
+        required: false
+        type: string
+        default: "moderate"
+      allow-licenses:
+        description: "Comma-separated list of SPDX license identifiers allowed in dependencies"
+        required: false
+        type: string
+        default: "MIT, Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC, 0BSD, MPL-2.0"
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  dependency-review:
+    name: Dependency Review
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v5
+        with:
+          fail-on-severity: ${{ inputs.fail-on-severity }}
+          comment-summary-in-pr: always
+          allow-licenses: ${{ inputs.allow-licenses }}

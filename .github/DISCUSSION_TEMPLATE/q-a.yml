@@ -1,0 +1,26 @@
+title: "[Question]: "
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Ask a question about setup, usage, architecture, or troubleshooting.
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+      description: What are you trying to do or understand?
+      placeholder: Describe your question clearly...
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context and Environment
+      description: Relevant project version, OS, configuration, or commands already tried.
+      placeholder: |
+        - Project / version:
+        - OS:
+        - What I tried:

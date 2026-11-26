@@ -3,6 +3,6 @@ contact_links:
   - name: Discussions
     url: https://github.com/techquestsdev/blog/discussions
     about: Ask questions and discuss ideas with the community
-  - name: Documentation
-    url: https://github.com/techquestsdev/blog#readme
-    about: Read the documentation for help and examples
+  - name: Projects & Documentation
+    url: https://techquests.dev/projects
+    about: Browse Tech Quests projects, guides, and documentation
