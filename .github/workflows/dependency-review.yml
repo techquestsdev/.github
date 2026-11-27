@@ -13,6 +13,11 @@ on:
         required: false
         type: string
         default: "MIT, Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC, 0BSD, MPL-2.0, Unlicense, CC0-1.0, Zlib, BlueOak-1.0.0, PSF-2.0, LicenseRef-scancode-google-patent-license-golang"
+      run-on-private:
+        description: "Run on private repositories (requires paid GitHub Advanced Security)"
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -21,6 +26,7 @@ permissions:
 jobs:
   dependency-review:
     name: Dependency Review
+    if: github.event.repository.private == false || inputs.run-on-private
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
